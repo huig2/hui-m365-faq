@@ -63,32 +63,32 @@ This article details the Pre-Provisioning Autopilot workflow for firmware-based 
    Message:  Windows EK certificate is present.
    ```
 
-Registry location of EK certificate:
+   Registry location of EK certificate:
    ```
    HKLM:\SYSTEM\CurrentControlSet\Services\TPM\WMI\Endorsement\EKCertStore\Certificates\<Thumbprint>
    ```
-Export EK certificate:
+   Export EK certificate:
    ```powershell
    TPMDiagnostics GetEkCertFromReg C:\IntuneLogs\EkCertFromReg.crt
    ```
 
 > More TPM info:
-> Get-TPMEndorsementKeyInfo
-> Tpmdiagnostics ekinfo
-> Tpmdiagnostics ekchain
+> - Get-TPMEndorsementKeyInfo
+> - Tpmdiagnostics ekinfo
+> - Tpmdiagnostics ekchain
 
 3. **Final Attestation**
-AIK request validation:
-```
-certreq -enrollaik -config ""
-```
+   AIK request validation:
+   ```
+   certreq -enrollaik -config ""
+   ```
 
-AIK success events:
-```
-Event ID: 250 - AutopilotManager started AIK certificate acquisition task
-Event ID: 251 - AIK certificate acquisition task returned HRESULT = 0x0
-Event ID: 169 - TPM identity confirmed
-```
+   AIK success events:
+   ```
+   Event ID: 250 - AutopilotManager started AIK certificate acquisition task
+   Event ID: 251 - AIK certificate acquisition task returned HRESULT = 0x0
+   Event ID: 169 - TPM identity confirmed
+   ```
 ---
 
 ## Common Fixes
