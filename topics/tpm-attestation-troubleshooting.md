@@ -72,10 +72,12 @@ This article details the Pre-Provisioning Autopilot workflow for firmware-based 
    TPMDiagnostics GetEkCertFromReg C:\IntuneLogs\EkCertFromReg.crt
    ```
 
-> More TPM info:
-> - Get-TPMEndorsementKeyInfo
-> - Tpmdiagnostics ekinfo
-> - Tpmdiagnostics ekchain
+   > [!NOTE]  
+   > More TPM info:  
+   > - `Get-TPMEndorsementKeyInfo`  
+   > - `Tpmdiagnostics ekinfo`  
+   > - `Tpmdiagnostics ekchain`  
+
 
 3. **Final Attestation**
    AIK request validation:
