@@ -1,5 +1,5 @@
 # Issue: Deleted App Category Still Appears in Company Portal
-*Applies to: Company Portal for Windows
+*Applies to: Company Portal for Windows*
 
 ## Scenario
 An App Category was deleted from Intune; however, it continues to appear in the **Company Portal**.
