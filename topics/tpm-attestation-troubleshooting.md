@@ -15,10 +15,10 @@ This article details the Pre-Provisioning Autopilot workflow for firmware-based 
 1. TPM → contacts vendor EK service, retrieves EK certificate
 2. TPM → requests AIK certificate from Microsoft AIK service
 3. AIK Cert received → Autopilot “Securing your hardware” step completes
-> Firmware TPMs require online access to vendor EK services the first time attestation is attempted.
-> Intel: https://ekop.intel.com/ekcertservice
-> Qualcomm: https://ekcert.spserv.microsoft.com/EKCertificate/GetEKCertificate/v1
-> AMD: https://ftpm.amd.com/pki/aia'''
+   > Firmware TPMs require online access to vendor EK services the first time attestation is attempted.
+   > - Intel: https://ekop.intel.com/ekcertservice
+   > - Qualcomm: https://ekcert.spserv.microsoft.com/EKCertificate/GetEKCertificate/v1
+   > - AMD: https://ftpm.amd.com/pki/aia'''
 
 ---
 
@@ -28,7 +28,7 @@ This article details the Pre-Provisioning Autopilot workflow for firmware-based 
    ```powershell
    tpmtool getdeviceinformation
 
-   Example output:
+   # Example output:
    TPM Present: True
    TPM Version: 2.0
    TPM Manufacturer ID: AMD
@@ -49,28 +49,28 @@ This article details the Pre-Provisioning Autopilot workflow for firmware-based 
 
 ## Troubleshooting by Flow
 1. **Connectivity tests:**
-```powershell
+   ```powershell
    Invoke-WebRequest "https://<Manufacturer EK Certificate URL>" -DisableKeepAlive
    Test-NetConnection -Port 443 -ComputerName <Domain>
    Start-Process msedge.exe "https://<Manufacturer EK Certificate URL>"
-```
+   ```
 2. **Successful EK Certificate Acquisition:**
-```
-Log Name: Microsoft-Windows-ModernDeployment-Diagnostics-Provider/Autopilot
-Source:   Microsoft-Windows-ModernDeployment-Diagnostics-Provider
-Event ID: 208
-Level:    Information
-Message:  Windows EK certificate is present.
-```
+   ```
+   Log Name: Microsoft-Windows-ModernDeployment-Diagnostics-Provider/Autopilot
+   Source:   Microsoft-Windows-ModernDeployment-Diagnostics-Provider
+   Event ID: 208
+   Level:    Information
+   Message:  Windows EK certificate is present.
+   ```
 
 Registry location of EK certificate:
-```
-HKLM:\SYSTEM\CurrentControlSet\Services\TPM\WMI\Endorsement\EKCertStore\Certificates\<Thumbprint>
-```
+   ```
+   HKLM:\SYSTEM\CurrentControlSet\Services\TPM\WMI\Endorsement\EKCertStore\Certificates\<Thumbprint>
+   ```
 Export EK certificate:
-```powershell
+   ```powershell
    TPMDiagnostics GetEkCertFromReg C:\IntuneLogs\EkCertFromReg.crt
-```
+   ```
 
 > More TPM info:
 > Get-TPMEndorsementKeyInfo
@@ -96,7 +96,7 @@ Event ID: 169 - TPM identity confirmed
 - Ensure the device has open access to vendor EK services and Microsoft AIK service
 - For firmware TPM, leave device connected to the internet for 10–15 minutes before provisioning to allow EK certificate caching
 
-Reference:
+## Reference:
 [TPM Attestation: What can possibly go wrong?](https://oofhours.com/2019/07/09/tpm-attestation-what-can-possibly-go-wrong/)
 
 
