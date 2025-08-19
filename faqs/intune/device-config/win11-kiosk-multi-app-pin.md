@@ -1,7 +1,6 @@
 # Issue: Windows 11 Kiosk Multi-App Start Menu Pins Not Applying
 *Applies to: Windows 11, Intune, Kiosk Multi-App Mode
 
-
 ## Scenario
 Customer configured a Kiosk (multi-app) profile via Intune, but the **Start menu pins do not apply** on Windows 11 devices.  
 
