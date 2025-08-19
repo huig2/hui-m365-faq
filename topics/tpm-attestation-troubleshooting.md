@@ -7,7 +7,6 @@ This article details the Pre-Provisioning Autopilot workflow for firmware-based 
 ---
 
 ## Background
-# What is Attestation?
 - TPM Attestation is the process where the TPM proves its authenticity.
 - Endorsement Key (EK): A unique key burned in at manufacturing. The EK Certificate is obtained from the vendor’s CA.
 - Attestation Identity Key (AIK): A new key generated during deployment. The AIK Cert is requested from Microsoft using the EK Cert.
@@ -72,11 +71,11 @@ This article details the Pre-Provisioning Autopilot workflow for firmware-based 
    TPMDiagnostics GetEkCertFromReg C:\IntuneLogs\EkCertFromReg.crt
    ```
 
-   > [!NOTE]  
-   > More TPM info:  
-   > - `Get-TPMEndorsementKeyInfo`  
-   > - `Tpmdiagnostics ekinfo`  
-   > - `Tpmdiagnostics ekchain`  
+      > [!NOTE]  
+      > More TPM info:  
+      > - `Get-TPMEndorsementKeyInfo`  
+      > - `Tpmdiagnostics ekinfo`  
+      > - `Tpmdiagnostics ekchain`  
 
 
 3. **Final Attestation**
