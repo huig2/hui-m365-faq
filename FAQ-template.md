@@ -1,4 +1,5 @@
 # FAQ Entry Template
+*Applies to: Windows Autopilot (Hybrid Azure AD Join), Intune*
 
 ## Error / Scenario
 简要描述错误或场景，例如：
