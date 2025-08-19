@@ -100,7 +100,7 @@ This article details the Pre-Provisioning Autopilot workflow for firmware-based 
 [TPM Attestation: What can possibly go wrong?](https://oofhours.com/2019/07/09/tpm-attestation-what-can-possibly-go-wrong/)
 
 ## Related Articles
-[Autopilot pre-provisioning fails with TPM Attestation error 0x81039024 / 0x81039020](faqs\intune\autopilot\errors\81039020.md)
+[Autopilot pre-provisioning fails with TPM Attestation error 0x81039024 / 0x81039020](../faqs/intune/autopilot/errors/81039020.md)
 
 
 
