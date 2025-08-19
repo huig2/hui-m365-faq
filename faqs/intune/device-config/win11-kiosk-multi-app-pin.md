@@ -23,7 +23,7 @@ Customer configured a Kiosk (multi-app) profile via Intune, but the **Start menu
      </win11:StartPins>]]></StartLayout>
      ```
    - This invalid XML causes silent failure on Windows 11 devices.  
-   ![alt text](image.png)
+   ![alt text](kiosk-startpin.png)
 ---
 
 ## Recommendation
