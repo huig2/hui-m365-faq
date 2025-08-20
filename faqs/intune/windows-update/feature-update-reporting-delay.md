@@ -1,8 +1,6 @@
 # Error: Reporting latency in Windows 10 and later feature updates report  
 *Applies to: Windows 10, Windows 11 feature update readiness reporting in Intune*  
 
----
-
 ## Scenario / Symptom
 When reviewing the **Windows 10 and later feature updates report** in Intune ([link](https://intune.microsoft.com/#view/Microsoft_Intune_Enrollment/WindowsUpdateOrgReport.ReactView)), devices show **delayed or outdated update status**.  
 
@@ -56,16 +54,16 @@ When reviewing the **Windows 10 and later feature updates report** in Intune ([l
 ---
 
 ## Resolution
-- ✅ **Validate device readiness**  
+- **Validate device readiness**  
   - Ensure required services and tasks are running.  
   - Confirm no GPO/registry sets telemetry to `0`.  
   - Verify device Azure AD authentication.  
 
-- ✅ **Trigger manual telemetry refresh**  
+- **Trigger manual telemetry refresh**  
   - Run `Compattelrunner.exe` or push via Intune script.  
   - Wait 52h (up to 3–5 days) for data ingestion.  
 
-- ✅ **Escalation paths**  
+- **Escalation paths**  
   1. If telemetry is collected but not surfacing in Intune → Verify network endpoints for diagnostic data ([doc](https://learn.microsoft.com/windows/privacy/configure-windows-diagnostic-data-in-your-organization)).  
   2. If telemetry is fresh but report still stale >3–5 days → Open Microsoft support case.  
 
