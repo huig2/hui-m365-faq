@@ -18,13 +18,13 @@ An Edge Transport server attempted to deliver messages to an internal Exchange s
 
 Example error in Application log in Event Viewer:
 
-     ```
+    ```
     Microsoft Exchange could not load the certificate with thumbprint of <ThumbprintID> 
     from the personal store on the local computer. 
     This certificate was configured for authentication with other Exchange servers. 
     Mail flow to other Exchange servers could be affected by this error.
+    ```
 
-     ```
 ---
 
 ## Recommendation
