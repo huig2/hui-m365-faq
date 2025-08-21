@@ -19,18 +19,20 @@ An Edge Transport server attempted to deliver messages to an internal Exchange s
 2. Exchange attempted to use the missing certificate for server-to-server authentication, causing mail flow failure. 
 
 Example error in **Application log (Event Viewer)**:  
-
 ```text
 Microsoft Exchange could not load the certificate with thumbprint of <ThumbprintID> 
 from the personal store on the local computer. 
 This certificate was configured for authentication with other Exchange servers. 
 Mail flow to other Exchange servers could be affected by this error. 
+```
 
 ---
 
-## Recommendation
-- Recreate the default transport certificate.  
-- Re-establish the Edge Subscription.
+## Recommendation  
+To resolve the issue:
+- **Step 1:** Recreate the default transport certificate.  
+- **Step 2:** Re-establish the Edge Subscription using the following commands:  
+
     ```powershell
     # Create new Edge subscription file
     New-EdgeSubscription -FileName "C:\EdgeSubscriptionFiles\EdgeSubscription01.xml"
@@ -40,4 +42,10 @@ Mail flow to other Exchange servers could be affected by this error.
 
     # Start synchronization
     Start-EdgeSynchronization -TargetServer Edge01
+    ```
+
+- **Step 3:** Verify mail flow has resumed by checking the queue:  
+
+    ```powershell
+    Get-Queue
     ```
