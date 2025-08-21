@@ -18,11 +18,13 @@ An Edge Transport server attempted to deliver messages to an internal Exchange s
 1. The default transport certificate on the Edge server was accidentally deleted.
 2. Exchange attempted to use the missing certificate for server-to-server authentication, causing mail flow failure. 
 
-Example error in Application log in Event Viewer:
-    
-    ```text
-    Microsoft Exchange could not load the certificate with thumbprint of <ThumbprintID> from the personal store on the local computer. 
-    This certificate was configured for authentication with other Exchange servers. Mail flow to other Exchange servers could be affected by this error. 
+Example error in **Application log (Event Viewer)**:  
+
+```text
+Microsoft Exchange could not load the certificate with thumbprint of <ThumbprintID> 
+from the personal store on the local computer. 
+This certificate was configured for authentication with other Exchange servers. 
+Mail flow to other Exchange servers could be affected by this error. 
 
 ---
 
