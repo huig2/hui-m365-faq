@@ -7,8 +7,11 @@ An Edge Transport server attempted to deliver messages to an internal Exchange s
 ## Symptom
 - Messages remain in the Edge Transport queue and fail to deliver.  
 - Queue viewer shows error: 
-    ```[{LED=451 4-4.395 Target host responded with error. -> 454 4.7.0 Temporary authentication failure}; {MSG=}; {FQDN=<EdgeServerFQDN>}; {IP=<EdgeServerIP>}; {LRT=15/07/2025 09:21:04}]
-    ``` 
+
+  ```text
+  [{LED=451 4-4.395 Target host responded with error. -> 454 4.7.0 Temporary authentication failure}; 
+   {MSG=}; {FQDN=<EdgeServerFQDN>}; {IP=<EdgeServerIP>}; {LRT=15/07/2025 09:21:04}]
+
 - Event logs show certificate-related errors on the Edge server.
 
 ## Root Cause
@@ -16,10 +19,11 @@ An Edge Transport server attempted to deliver messages to an internal Exchange s
 2. Exchange attempted to use the missing certificate for server-to-server authentication, causing mail flow failure. 
 
 Example error in Application log in Event Viewer:
-    ```Microsoft Exchange could not load the certificate with thumbprint of <ThumbprintID> from the personal store on the local computer. 
-    This certificate was configured for authentication with other Exchange servers. Mail flow to other Exchange servers could be affected by this error. 
-    ```
     
+    ```text
+    Microsoft Exchange could not load the certificate with thumbprint of <ThumbprintID> from the personal store on the local computer. 
+    This certificate was configured for authentication with other Exchange servers. Mail flow to other Exchange servers could be affected by this error. 
+
 ---
 
 ## Recommendation
