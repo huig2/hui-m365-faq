@@ -17,6 +17,7 @@ An Edge Transport server attempted to deliver messages to an internal Exchange s
 2. Exchange attempted to use the missing certificate for server-to-server authentication, causing mail flow failure. 
 
 Example error in Application log in Event Viewer:
+
      ```
     Microsoft Exchange could not load the certificate with thumbprint of <ThumbprintID> 
     from the personal store on the local computer. 
