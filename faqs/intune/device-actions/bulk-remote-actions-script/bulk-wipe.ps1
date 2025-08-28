@@ -1,55 +1,70 @@
-﻿# ============== bulk-wipe.ps1 (no CmdletBinding; 使用自带 -WhatIf) ==============
+﻿# ======= 支持 App-only 或 Delegated 两种认证 =======
 param(
   [Parameter(Mandatory=$true)]
-  [string]$InputCsv,                              # 例如 .\aad-objectids.csv
+  [string]$InputCsv,
 
   [ValidateSet('Wipe','Retire','CleanWindows')]
   [string]$Mode = 'Wipe',
 
-  [switch]$KeepEnrollmentData,                    # 仅 Wipe 用
-  [switch]$KeepUserData,                          # 仅 Wipe 用
-  [switch]$PersistEsimDataPlan,                   # 仅 Wipe 用
-  [switch]$WhatIf                                 # 干跑：不真正下发命令
+  # 认证方式：Delegated（交互登录）或 App（应用身份）
+  [ValidateSet('Delegated','App')]
+  [string]$Auth = 'Delegated',
+
+  # 仅当 -Auth App 时需要：
+  [string]$TenantId,
+  [string]$ClientId,
+  [securestring]$ClientSecret,
+
+  [switch]$KeepEnrollmentData,
+  [switch]$KeepUserData,
+  [switch]$PersistEsimDataPlan,
+  [switch]$WhatIf
 )
 
-$ErrorActionPreference='Stop'
+$ErrorActionPreference = 'Stop'
 
-# ---- 统一固定 Graph SDK 版本，避免依赖不一致 ----
+# 计算所需权限列表（仅用于 Delegated 登录时申请 scopes；App-only 不用 scopes）
+$required = @("Device.Read.All","DeviceManagementManagedDevices.ReadWrite.All")
+if ($Mode -in @('Retire','CleanWindows')) {
+  $required += "DeviceManagementManagedDevices.PrivilegedOperations.All"
+}
+
+# ======= Graph 模块准备（保持你原有固定版本逻辑即可）=======
 $GraphVersion = '2.25.0'
 Get-Module Microsoft.Graph* | Remove-Module -Force -ErrorAction SilentlyContinue
 $mods = 'Microsoft.Graph.Authentication','Microsoft.Graph.DeviceManagement','Microsoft.Graph.Identity.DirectoryManagement'
 foreach($m in $mods){
   if (-not (Get-Module -ListAvailable $m | Where-Object Version -eq $GraphVersion)){
-    try { Set-PSRepository PSGallery -InstallationPolicy Trusted -ErrorAction SilentlyContinue } catch {}
-    if (-not (Get-PackageProvider -Name NuGet -ListAvailable -ErrorAction SilentlyContinue)) {
-      Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
-    }
     Install-Module $m -Scope CurrentUser -RequiredVersion $GraphVersion -Force -AllowClobber
   }
   Import-Module $m -RequiredVersion $GraphVersion -Force
 }
 
-# ---- 定义：确保当前会话拿到所需 Graph Scopes（不足则断开重登）----
-function Ensure-GraphScopes {
-  param([string[]]$Scopes)
-  $ctx = Get-MgContext
-  $missing = @()
-  if (-not $ctx -or -not $ctx.Scopes) { $missing = $Scopes }
-  else { $missing = $Scopes | Where-Object { $_ -notin $ctx.Scopes } }
-  if ($missing.Count -gt 0) {
-    Disconnect-MgGraph -ErrorAction SilentlyContinue
-    Connect-MgGraph -Scopes $Scopes | Out-Null
+# ======= 登录（根据 -Auth 分支处理）=======
+if (Get-MgContext) { Disconnect-MgGraph -ErrorAction SilentlyContinue }
+
+switch ($Auth) {
+  'App' {
+    if (-not ($TenantId -and $ClientId -and $ClientSecret)) {
+      throw "App auth 需要 -TenantId、-ClientId、-ClientSecret（SecureString）"
+    }
+    # Graph PowerShell 支持用 Client Secret 进行应用登录（-ClientSecretCredential）
+    # 见官方文档示例。 
+    # https://learn.microsoft.com/powershell/microsoftgraph/authentication-commands?view=graph-powershell-1.0#use-client-secret-credentials
+    $cred = [pscredential]::new($ClientId, $ClientSecret)
+    Connect-MgGraph -TenantId $TenantId -ClientSecretCredential $cred -NoWelcome | Out-Null
+
+    # CleanWindows 目前仅支持 Delegated，不支持 App-only
+    if ($Mode -eq 'CleanWindows') {
+      throw "CleanWindows 需要 Delegated 权限（Graph 文档未列出 Application 权限）；请改用 -Auth Delegated。"
+    }
+  }
+
+  'Delegated' {
+    # 交互登录：用 scopes 申请委派权限
+    Connect-MgGraph -Scopes $required -NoWelcome | Out-Null
   }
 }
-
-# ---- 预取高权限（即便 -WhatIf 也会同意完整权限，避免实操 403）----
-$required = @(
-  "Device.Read.All",
-  "DeviceManagementManagedDevices.ReadWrite.All",
-  "DeviceManagementManagedDevices.PrivilegedOperations.All"
-)
-Ensure-GraphScopes -Scopes $required
-"Current scopes: $((Get-MgContext).Scopes -join ', ')"
 
 # 读取 CSV（智能识别列名：ObjectId / aadObjectId / 第一列）
 $rowsRaw = Import-Csv -Path $InputCsv
