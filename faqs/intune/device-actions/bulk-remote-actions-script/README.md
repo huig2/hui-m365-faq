@@ -31,17 +31,15 @@ Bulk trigger **Microsoft Intune** remote actions (**Wipe / Retire / Clean Window
 - `DeviceManagementManagedDevices.ReadWrite.All`  
 - `DeviceManagementManagedDevices.PrivilegedOperations.All`
 
-> During the first prompt, an admin can tick **“Consent on behalf of your organization”** to avoid future prompts.
+> When using Delegated Auth, during the first prompt, an admin can tick **“Consent on behalf of your organization”** to avoid future prompts.
+> Please use "-Auth App" to trigger Application Auth:
 
-### Intune RBAC
+    ```
+    $sec = ConvertTo-SecureString 'Enter client secret' -AsPlainText -Force
 
-Your Intune role must allow the corresponding **Remote tasks** and cover the **device scope** (scope tags / device groups), e.g.:
-- **Wipe** — *Managed devices → Remote tasks → Wipe*  
-- **Retire** — *Managed devices → Remote tasks → Retire*  
-- **Clean Windows** — matching remote action permission (and Graph `…PrivilegedOperations.All`)
+    .\bulk-wipe.ps1 -InputCsv .\aad-objectids.csv -Mode Retire -Auth App `
+    -TenantId "ceafb87b-bd4a-4aeb-ae30-64206e0cd550" `
+    -ClientId "8ad2fc45-99ec-499e-90ed-ccc97c30a041" `
+    -ClientSecret $sec -WhatIf
+    ```
 
----
-
-## CSV format
-
-**Recommended (header `ObjectId`)**
