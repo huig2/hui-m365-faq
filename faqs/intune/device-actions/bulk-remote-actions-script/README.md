@@ -32,9 +32,10 @@ Bulk trigger **Microsoft Intune** remote actions (**Wipe / Retire / Clean Window
 - `DeviceManagementManagedDevices.PrivilegedOperations.All`
 
 > When using Delegated Auth, during the first prompt, an admin can tick **“Consent on behalf of your organization”** to avoid future prompts.
+
 > Please use "-Auth App" to trigger Application Auth:
 
-    ```
+    ```powershell
     $sec = ConvertTo-SecureString 'Enter client secret' -AsPlainText -Force
 
     .\bulk-wipe.ps1 -InputCsv .\aad-objectids.csv -Mode Retire -Auth App `
