@@ -9,7 +9,7 @@ param(
   [switch]$KeepEnrollmentData,                    # 仅 Wipe 用
   [switch]$KeepUserData,                          # 仅 Wipe 用
   [switch]$PersistEsimDataPlan,                   # 仅 Wipe 用
-  [switch]$WhatIf                                 # 干跑：不真正下发命令
+  [switch]$WhatIf                                 # 测试：不真正下发命令
 )
 
 $ErrorActionPreference='Stop'
