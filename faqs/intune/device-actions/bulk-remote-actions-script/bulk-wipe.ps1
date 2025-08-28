@@ -6,19 +6,10 @@ param(
   [ValidateSet('Wipe','Retire','CleanWindows')]
   [string]$Mode = 'Wipe',
 
-  # 认证方式：Delegated（交互登录）或 App（应用身份）
-  [ValidateSet('Delegated','App')]
-  [string]$Auth = 'Delegated',
-
-  # 仅当 -Auth App 时需要：
-  [string]$TenantId,
-  [string]$ClientId,
-  [securestring]$ClientSecret,
-
-  [switch]$KeepEnrollmentData,
-  [switch]$KeepUserData,
-  [switch]$PersistEsimDataPlan,
-  [switch]$WhatIf
+  [switch]$KeepEnrollmentData,                    # 仅 Wipe 用
+  [switch]$KeepUserData,                          # 仅 Wipe 用
+  [switch]$PersistEsimDataPlan,                   # 仅 Wipe 用
+  [switch]$WhatIf                                 # 干跑：不真正下发命令
 )
 
 $ErrorActionPreference = 'Stop'
