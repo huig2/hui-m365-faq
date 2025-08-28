@@ -1,0 +1,1 @@
+# Issue: Edge Transport server fails to deliver emails to internal Exchange servers
