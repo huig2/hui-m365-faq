@@ -42,5 +42,4 @@ Bulk trigger **Microsoft Intune** remote actions (**Wipe / Retire / Clean Window
     -TenantId "ceafb87b-bd4a-4aeb-ae30-64206e0cd550" `
     -ClientId "8ad2fc45-99ec-499e-90ed-ccc97c30a041" `
     -ClientSecret $sec -WhatIf
-    ```
 
