@@ -1,29 +1,58 @@
-﻿# ======= 支持 App-only 或 Delegated 两种认证 =======
+﻿# ===================== bulk-wipe-v1.3.ps1 =====================
+<#
+Bulk trigger Intune remote actions (Wipe / Retire / Clean Windows / Delete)
+by Entra device ObjectId list from CSV.
+
+- Supports Delegated (interactive) and App-only (client credentials) auth
+- Pins Microsoft Graph PowerShell SDK to 2.25.0 per CurrentUser
+- Adds "Delete" action: removes Intune managedDevice record (no device command)
+- Uses custom -WhatIf (dry run) to preview mapping and actions
+#>
+
 param(
   [Parameter(Mandatory=$true)]
-  [string]$InputCsv,
+  [string]$InputCsv,                                 # e.g. .\aad-objectids.csv
 
-  [ValidateSet('Wipe','Retire','CleanWindows')]
+  [ValidateSet('Wipe','Retire','CleanWindows','Delete')]
   [string]$Mode = 'Wipe',
 
-  [switch]$KeepEnrollmentData,                    # 仅 Wipe 用
-  [switch]$KeepUserData,                          # 仅 Wipe 用
-  [switch]$PersistEsimDataPlan,                   # 仅 Wipe 用
-  [switch]$WhatIf                                 # 干跑：不真正下发命令
+  # Auth mode: Delegated (interactive with scopes) or App (client credentials)
+  [ValidateSet('Delegated','App')]
+  [string]$Auth = 'Delegated',
+
+  # App-only auth params
+  [string]$TenantId,
+  [string]$ClientId,
+  [securestring]$ClientSecret,                       # preferred: secure string
+  [string]$ClientSecretPlain,                        # optional: plain text -> will convert
+
+  # Wipe options
+  [switch]$KeepEnrollmentData,
+  [switch]$KeepUserData,
+  [switch]$PersistEsimDataPlan,
+
+  # Dry run
+  [switch]$WhatIf
 )
 
 $ErrorActionPreference = 'Stop'
 
-# 计算所需权限列表（仅用于 Delegated 登录时申请 scopes；App-only 不用 scopes）
-$required = @("Device.Read.All","DeviceManagementManagedDevices.ReadWrite.All")
-if ($Mode -in @('Retire','CleanWindows')) {
-  $required += "DeviceManagementManagedDevices.PrivilegedOperations.All"
-}
-
-# ======= Graph 模块准备（保持你原有固定版本逻辑即可）=======
+# ---------------- Graph SDK bootstrap (pin 2.25.0) ----------------
 $GraphVersion = '2.25.0'
 Get-Module Microsoft.Graph* | Remove-Module -Force -ErrorAction SilentlyContinue
-$mods = 'Microsoft.Graph.Authentication','Microsoft.Graph.DeviceManagement','Microsoft.Graph.Identity.DirectoryManagement'
+
+$mods = @(
+  'Microsoft.Graph.Authentication',
+  'Microsoft.Graph.DeviceManagement',
+  'Microsoft.Graph.Identity.DirectoryManagement'
+)
+
+# Ensure PSGallery/NuGet available (non-fatal if already set)
+try { Set-PSRepository -Name PSGallery -InstallationPolicy Trusted -ErrorAction SilentlyContinue } catch {}
+if (-not (Get-PackageProvider -Name NuGet -ListAvailable -ErrorAction SilentlyContinue)) {
+  Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
+}
+
 foreach($m in $mods){
   if (-not (Get-Module -ListAvailable $m | Where-Object Version -eq $GraphVersion)){
     Install-Module $m -Scope CurrentUser -RequiredVersion $GraphVersion -Force -AllowClobber
@@ -31,41 +60,67 @@ foreach($m in $mods){
   Import-Module $m -RequiredVersion $GraphVersion -Force
 }
 
-# ======= 登录（根据 -Auth 分支处理）=======
-if (Get-MgContext) { Disconnect-MgGraph -ErrorAction SilentlyContinue }
-
-switch ($Auth) {
-  'App' {
-    if (-not ($TenantId -and $ClientId -and $ClientSecret)) {
-      throw "App auth 需要 -TenantId、-ClientId、-ClientSecret（SecureString）"
-    }
-    # Graph PowerShell 支持用 Client Secret 进行应用登录（-ClientSecretCredential）
-    # 见官方文档示例。 
-    # https://learn.microsoft.com/powershell/microsoftgraph/authentication-commands?view=graph-powershell-1.0#use-client-secret-credentials
-    $cred = [pscredential]::new($ClientId, $ClientSecret)
-    Connect-MgGraph -TenantId $TenantId -ClientSecretCredential $cred -NoWelcome | Out-Null
-
-    # CleanWindows 目前仅支持 Delegated，不支持 App-only
-    if ($Mode -eq 'CleanWindows') {
-      throw "CleanWindows 需要 Delegated 权限（Graph 文档未列出 Application 权限）；请改用 -Auth Delegated。"
-    }
+function Ensure-DelegatedScopes {
+  param([string[]]$Scopes)
+  $ctx = Get-MgContext
+  $missing = @()
+  if (-not $ctx -or -not $ctx.Scopes) { $missing = $Scopes } else {
+    $missing = $Scopes | Where-Object { $_ -notin $ctx.Scopes }
   }
-
-  'Delegated' {
-    # 交互登录：用 scopes 申请委派权限
-    Connect-MgGraph -Scopes $required -NoWelcome | Out-Null
+  if ($missing.Count -gt 0) {
+    Disconnect-MgGraph -ErrorAction SilentlyContinue
+    Connect-MgGraph -Scopes $Scopes -NoWelcome | Out-Null
   }
 }
 
-# 读取 CSV（智能识别列名：ObjectId / aadObjectId / 第一列）
+# ---------------- Login ----------------
+if (Get-MgContext) { Disconnect-MgGraph -ErrorAction SilentlyContinue }
+
+# Minimal required permissions (Delegated only; App uses application permissions granted in Entra)
+$delegatedScopes = @('Device.Read.All','DeviceManagementManagedDevices.ReadWrite.All')
+if ($Mode -in @('Retire','CleanWindows','Delete')) {
+  $delegatedScopes += 'DeviceManagementManagedDevices.PrivilegedOperations.All'
+}
+
+switch ($Auth) {
+  'Delegated' {
+    Ensure-DelegatedScopes -Scopes $delegatedScopes
+    "AuthMode: Delegated | Scopes: $((Get-MgContext).Scopes -join ', ')"
+  }
+  'App' {
+    if (-not $TenantId -or -not $ClientId) {
+      throw "App auth requires -TenantId and -ClientId."
+    }
+    if (-not $ClientSecret) {
+      if ($ClientSecretPlain) {
+        $ClientSecret = ConvertTo-SecureString $ClientSecretPlain -AsPlainText -Force
+      } else {
+        $ClientSecret = Read-Host "Enter client secret" -AsSecureString
+      }
+    }
+    # NOTE: CleanWindows is NOT supported with App-only auth (no Application permission documented)
+    if ($Mode -eq 'CleanWindows') {
+      throw "CleanWindows is not supported with App-only authentication. Use -Auth Delegated."
+    }
+    Connect-MgGraph -TenantId $TenantId -ClientId $ClientId -ClientSecret $ClientSecret -NoWelcome | Out-Null
+    "AuthMode: App (client credentials)"
+  }
+}
+
+# ---------------- Read CSV (detect column) ----------------
 $rowsRaw = Import-Csv -Path $InputCsv
-if (-not $rowsRaw) { throw "CSV 为空：$InputCsv" }
+if (-not $rowsRaw) { throw "CSV is empty: $InputCsv" }
+
 $colName = ($rowsRaw | Get-Member -MemberType NoteProperty | ForEach-Object Name |
            Where-Object { $_ -in @('ObjectId','objectId','aadObjectId','AadObjectId') } |
            Select-Object -First 1)
-if (-not $colName) { $colName = ($rowsRaw | Get-Member -MemberType NoteProperty | Select-Object -First 1).Name }
+if (-not $colName) {
+  # no header -> take the first column
+  $colName = ($rowsRaw | Get-Member -MemberType NoteProperty | Select-Object -First 1).Name
+}
 $rows = $rowsRaw | ForEach-Object { [pscustomobject]@{ ObjectId = $_.$colName } }
 
+# ---------------- Process ----------------
 $log  = [System.Collections.Generic.List[object]]::new()
 
 foreach ($r in $rows) {
@@ -73,11 +128,11 @@ foreach ($r in $rows) {
   if (-not $objectId) { continue }
 
   try {
-    # 1) AAD 设备对象 => 取 DeviceId（即 Intune 的 azureADDeviceId）
+    # 1) Entra device: use ObjectId to get device -> read DeviceId (immutable)
     $aad = Get-MgDevice -DeviceId $objectId -ErrorAction Stop
     $aadDeviceId = $aad.DeviceId
 
-    # 2) 用 azureADDeviceId 反查 Intune 托管设备
+    # 2) Intune managed device by azureADDeviceId
     $mds = Get-MgDeviceManagementManagedDevice -Filter "azureADDeviceId eq '$aadDeviceId'" -All
     if (-not $mds) {
       $log.Add([pscustomobject]@{
@@ -86,6 +141,8 @@ foreach ($r in $rows) {
       }) | Out-Null
       continue
     }
+
+    # prefer the most recently synced record
     $md = $mds | Sort-Object lastSyncDateTime -Descending | Select-Object -First 1
 
     $result = 'Simulated (WhatIf)'
@@ -105,9 +162,14 @@ foreach ($r in $rows) {
           $result = 'Retire sent (204)'
         }
         'CleanWindows' {
-          # 需要 DeviceManagementManagedDevices.PrivilegedOperations.All
+          # Delegated only (already blocked in App branch)
           Invoke-MgCleanDeviceManagementManagedDeviceWindowsDevice -ManagedDeviceId $md.Id -ErrorAction Stop
           $result = 'CleanWindows sent (204)'
+        }
+        'Delete' {
+          # Delete Intune managedDevice record (no device-side action)
+          Remove-MgDeviceManagementManagedDevice -ManagedDeviceId $md.Id -ErrorAction Stop
+          $result = 'Delete sent (204)'
         }
       }
     }
@@ -131,8 +193,9 @@ foreach ($r in $rows) {
   }
 }
 
-$ts = Get-Date -Format "yyyyMMdd-HHmmss"
+# ---------------- Output log ----------------
+$ts  = Get-Date -Format "yyyyMMdd-HHmmss"
 $out = ".\bulk-wipe-log-$ts.csv"
 $log | Export-Csv -NoTypeInformation -Path $out
-Write-Host "完成，日志：$out"
-# ================= end =================
+Write-Host "Done. Log: $out"
+# ===================== end of file =====================
